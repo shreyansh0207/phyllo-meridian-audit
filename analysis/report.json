@@ -1,0 +1,100 @@
+{
+  "orders_found": 6,
+  "order_ids": [
+    "ord_1001",
+    "ord_1002",
+    "ord_1003",
+    "ord_1004",
+    "ord_1005",
+    "ord_1006"
+  ],
+  "page1": {
+    "has_more": false,
+    "next_cursor": "cur_8f2a19bd",
+    "orders": 4
+  },
+  "page2": {
+    "has_more": false,
+    "next_cursor": null,
+    "orders": 2
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "critical",
+      "title": "Pagination stops early: has_more=false while more orders exist",
+      "docs_say": "Check has_more to decide whether to request another page; when true, pass next_cursor as starting_after.",
+      "data_does": "orders_page1.json has has_more=false but next_cursor='cur_8f2a19bd'; the capture for that cursor (orders_page2.json) contains 2 more orders.",
+      "hurts": "A client following the docs stops after page 1 and silently loses every order after cursor 'cur_8f2a19bd' (2 orders, USD 25.47 of stated totals). No error is raised, so the undercount is invisible."
+    },
+    {
+      "id": "F2",
+      "severity": "high",
+      "title": "total does not always equal subtotal + tax + shipping",
+      "docs_say": "total: Amount charged. Always equals subtotal + tax + shipping.",
+      "data_does": "ord_1004: subtotal+tax+shipping = USD 73.10 but total = 6810 (USD 68.10); ord_1006: subtotal+tax+shipping = USD 0.54 but total = 53.62 (53.62).",
+      "hurts": "Anyone recomputing the total from its components gets a different number than the stored total. Summing totals vs. summing components disagree by USD -48.08 here - exactly the kind of gap Priya is seeing."
+    },
+    {
+      "id": "F3",
+      "severity": "high",
+      "title": "Monetary amounts are not always integer cents",
+      "docs_say": "All monetary amounts are integers in the smallest unit (54.70 USD is returned as 5470).",
+      "data_does": "ord_1006: subtotal=44.0, tax=3.63, shipping=5.99, total=53.62 - floats in major units, i.e. dollars not cents.",
+      "hurts": "Strict-typed clients crash or truncate. Worse, a client that blindly sums these as 'cents' books ord_1006 as $0.54 instead of $53.62 - a 100x error - and mixed-unit sums are garbage."
+    },
+    {
+      "id": "F4",
+      "severity": "medium",
+      "title": "Order status outside the documented enum",
+      "docs_say": "status is one of pending, shipped, delivered, cancelled.",
+      "data_does": "orders_page1.json: ord_1003 has status 'refunded', which the enum does not allow.",
+      "hurts": "Clients that validate against the enum (or map status to an internal enum) reject or drop the payload. It also means the docs give no guidance on whether refunded money counts as revenue - a finance-affecting ambiguity."
+    },
+    {
+      "id": "F5",
+      "severity": "medium",
+      "title": "Missing order returns HTTP 200, not 404",
+      "docs_say": "GET /v1/orders/{id} returns 404 if no order with that ID exists.",
+      "data_does": "order_ord_9999.json (GET /v1/orders/ord_9999, no such order) returned status 200 with body {\"order\": null}.",
+      "hurts": "Error handling keyed on status codes never fires; the caller must inspect the body to notice the order is missing, and the envelope shape differs from the list endpoint's order object."
+    },
+    {
+      "id": "F6",
+      "severity": "low",
+      "title": "customer.email is not always present",
+      "docs_say": "customer.email: The customer's email address. Always present.",
+      "data_does": "orders_page2.json: ord_1005 (customer cus_505, name='Guest') has email=null.",
+      "hurts": "Guest checkouts exist but the docs deny it. Integrations that email receipts or match customers by email break on null."
+    }
+  ],
+  "worst": "F1",
+  "revenue_scenarios_cents": {
+    "A - naive sum of stored totals (all 6 orders)": 32803,
+    "B - exclude refunded ord_1003": 22570,
+    "C - B + ord_1004 corrected to component sum": 23070,
+    "D - A + ord_1004 corrected to component sum": 33303
+  },
+  "revenue_scenarios_usd": {
+    "A - naive sum of stored totals (all 6 orders)": "$328.03",
+    "B - exclude refunded ord_1003": "$225.70",
+    "C - B + ord_1004 corrected to component sum": "$230.70",
+    "D - A + ord_1004 corrected to component sum": "$333.03"
+  },
+  "naive_pull_trusting_has_more": {
+    "orders_seen": 4,
+    "stated_total_cents": 24894,
+    "usd": "USD 248.94",
+    "missing_orders": [
+      "ord_1005",
+      "ord_1006"
+    ]
+  },
+  "cannot_determine": [
+    "Whether a refunded order counts as revenue - 'refunded' is not in the docs at all.",
+    "Whether stored total or component sum is authoritative for ord_1004.",
+    "Whether any page 3+ exists - has_more already lied once, so page 2's has_more=false cannot be trusted either.",
+    "Whether ord_1006's float dollar values are cents-scaled in the dashboard or raw dollars.",
+    "The dashboard's own revenue definition (gross vs net of refunds, before/after the ord_1004 fix)."
+  ]
+}

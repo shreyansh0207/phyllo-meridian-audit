@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meridian API Audit — Phyllo Product Analyst Take-Home</title>
+<meta name="description" content="An audit of the fictional Meridian Orders API: six places where the docs disagree with the data, a defensible revenue number, and the fix." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238b5cf6'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='16' cy='16' r='13' fill='none' stroke='url(%23g)' stroke-width='4'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+<canvas id="particles" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav">
+  <div class="brand"><span class="dot"></span>PHYLLO <em>/ meridian-api audit</em></div>
+  <ul>
+    <li><a href="#findings-sec">Findings</a></li>
+    <li><a href="#lab-sec">Revenue Lab</a></li>
+    <li><a href="#evidence-sec">Evidence</a></li>
+    <li><a href="#deliverables-sec">Deliverables</a></li>
+    <li><a href="#method-sec">Method</a></li>
+  </ul>
+</nav>
+
+<header class="hero">
+  <div class="kicker rv">Product Analyst Take-Home · Shreyansh Shukla</div>
+  <h1 class="rv" data-d="1">The docs promise one thing.<br /><span class="shine">The data does another.</span></h1>
+  <p class="sub rv" data-d="2">
+    Meridian’s Orders API reads beautifully — until you line <strong>API_DOCS.md</strong> up against the
+    payloads it actually returns. I audited every documented promise against three captured responses
+    and found <strong>six disagreements</strong>, one defensible revenue figure, and the likely root of a
+    customer’s reconciliation nightmare.
+  </p>
+
+  <div class="stats">
+    <div class="stat rv" data-d="1">
+      <div class="num accent" data-count="6">0</div>
+      <div class="lbl">Doc-vs-data gaps</div>
+    </div>
+    <div class="stat rv" data-d="2">
+      <div class="num" data-count="6">0</div>
+      <div class="lbl">Orders recovered</div>
+    </div>
+    <div class="stat rv" data-d="3">
+      <div class="num danger" data-count="79.09" data-fmt="money">$0.00</div>
+      <div class="lbl">Silently missing</div>
+    </div>
+    <div class="stat rv" data-d="4">
+      <div class="num accent" data-count="230.70" data-fmt="money">$0.00</div>
+      <div class="lbl">Defensible revenue</div>
+    </div>
+  </div>
+
+  <div class="ticker-wrap rv" data-d="3">
+    <div class="ticker" id="ticker"></div>
+  </div>
+  <div class="scroll-hint">scroll</div>
+</header>
+
+<main>
+
+  <!-- FINDINGS -->
+  <section id="findings-sec">
+    <div class="sec-head">
+      <div class="idx rv">01 / Task 1</div>
+      <h2 class="rv" data-d="1">What doesn’t match</h2>
+      <p class="rv" data-d="2">
+        Every promise in API_DOCS.md, checked against the three responses. Click a finding to see
+        what the docs say, what the data does, and who gets hurt. The worst one fails silently —
+        which is exactly what makes it the worst.
+      </p>
+    </div>
+    <div id="findings"></div>
+  </section>
+
+  <!-- REVENUE LAB -->
+  <section id="lab-sec">
+    <div class="sec-head">
+      <div class="idx rv">02 / Task 2</div>
+      <h2 class="rv" data-d="1">The Revenue Lab</h2>
+      <p class="rv" data-d="2">
+        “What’s the total revenue?” has no honest single answer — the data forces choices.
+        Flip the assumptions and watch the number move. My submitted answer is
+        <strong>Scenario&nbsp;C</strong>.
+      </p>
+    </div>
+
+    <div class="lab">
+      <div class="panel rv">
+        <h3>Assumptions</h3>
+        <div class="toggle-row on" data-key="excludeRefund">
+          <div>
+            <div class="tt">Exclude refunded ord_1003</div>
+            <div class="td">“refunded” isn’t in the docs; refunded money went back.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="toggle-row on" data-key="correct1004">
+          <div>
+            <div class="tt">Fix ord_1004 to its component sum</div>
+            <div class="td">Trust 6200+511+599 = $73.10 over the stored $68.10.</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+        <div class="toggle-row on" data-key="convert1006">
+          <div>
+            <div class="tt">Convert ord_1006 dollars → cents</div>
+            <div class="td">Turn off to see the 100× booking trap ($53.62 → $0.54).</div>
+          </div>
+          <div class="switch"></div>
+        </div>
+
+        <div class="big-total">
+          <div class="val" id="lab-total">$0.00</div>
+          <div class="scen" id="lab-scen"></div>
+        </div>
+        <div class="delta-note">
+          A report that trusts <b>has_more</b> stops at page 1 and books <b>$248.94</b> — it never
+          sees ord_1005 or ord_1006 at all.
+        </div>
+      </div>
+
+      <div class="panel rv" data-d="1">
+        <h3>Orders under the current assumptions</h3>
+        <div class="bars" id="lab-bars"></div>
+        <ul class="unknowns">
+          <li><b>Can’t tell from this data:</b> whether a page 3 exists — page 1 already lied about has_more, so page 2’s “false” can’t be trusted.</li>
+          <li><b>Can’t tell:</b> which ord_1004 figure the dashboard’s ledger holds.</li>
+          <li><b>Can’t tell:</b> whether Meridian counts refunds as revenue — I’d ask all three questions.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVIDENCE -->
+  <section id="evidence-sec">
+    <div class="sec-head">
+      <div class="idx rv">03 / Evidence</div>
+      <h2 class="rv" data-d="1">The raw payloads, annotated</h2>
+      <p class="rv" data-d="2">
+        Exactly what the API returned. Hover the highlighted values — each one is a doc promise breaking in the wild.
+      </p>
+    </div>
+    <div class="tabs rv" id="evidence-tabs">
+      <button class="tab active" data-src="orders_page1.json">orders_page1.json</button>
+      <button class="tab" data-src="orders_page2.json">orders_page2.json</button>
+      <button class="tab" data-src="order_ord_9999.json">order_ord_9999.json</button>
+    </div>
+    <div class="codebox rv" data-d="1" id="codebox"></div>
+    <div class="exhibit-legend rv" data-d="2">
+      <span class="e1"><i></i>broken promise (hover for the finding)</span>
+      <span class="e2"><i></i>inconsistent value</span>
+    </div>
+  </section>
+
+  <!-- DELIVERABLES -->
+  <section id="deliverables-sec">
+    <div class="sec-head">
+      <div class="idx rv">04 / Task 3</div>
+      <h2 class="rv" data-d="1">The two writes</h2>
+      <p class="rv" data-d="2">
+        A reply Priya can forward to her CFO, and a bug report an engineer can fix from without
+        asking a single question.
+      </p>
+    </div>
+    <div class="panel rv">
+      <div class="deliv-head">
+        <div class="tabs" id="deliv-tabs" style="margin-bottom:0">
+          <button class="tab active" data-doc="priya">Reply to Priya</button>
+          <button class="tab" data-doc="bug">Bug report</button>
+        </div>
+        <button class="copy-btn" id="copy-btn">copy as markdown</button>
+      </div>
+      <div id="deliv-pane"></div>
+    </div>
+  </section>
+
+  <!-- METHOD -->
+  <section id="method-sec">
+    <div class="sec-head">
+      <div class="idx rv">05 / Method</div>
+      <h2 class="rv" data-d="1">Reproducible, not vibes</h2>
+      <p class="rv" data-d="2">Every number on this page is regenerated from the raw payloads by one script.</p>
+    </div>
+    <div class="method">
+      <div class="mcard rv">
+        <h4>The script</h4>
+        <p>Stdlib-only Python. Loads the three captured payloads, checks each documented promise, and computes the revenue scenarios.</p>
+        <code>python analysis/reconcile.py</code>
+      </div>
+      <div class="mcard rv" data-d="1">
+        <h4>The output</h4>
+        <p>Findings, severity, the worst-one rationale, four revenue scenarios and the can’t-tell-from-this-data list — written to report.json.</p>
+        <code>analysis/report.json</code>
+      </div>
+      <div class="mcard rv" data-d="2">
+        <h4>The inputs</h4>
+        <p>Untouched candidate-pack files: the docs, the ticket, and the three API responses. Nothing was cleaned up before auditing.</p>
+        <code>data/*.json · data/*.md</code>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="sig">Built by <em>Shreyansh Shukla</em> · Phyllo Product Analyst take-home</div>
+  <div>Meridian is fictional. The bugs, unfortunately, are not.</div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
