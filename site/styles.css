@@ -704,6 +704,8 @@ footer {
 }
 footer .sig { font-family: var(--font-display); color: var(--ink-dim); font-weight: 600; }
 footer .sig em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+footer a { color: var(--cyan); text-decoration: none; border-bottom: 1px solid rgba(34, 211, 238, .35); transition: border-color .2s; }
+footer a:hover { border-color: var(--cyan); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

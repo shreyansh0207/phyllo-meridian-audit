@@ -18,6 +18,7 @@ step, no server needed.
 |---|---|
 | `WRITEUP.md` | The submission document (571 words, limit 800) |
 | `site/` | Interactive dashboard — the link you'd send |
+| `site/Shreyansh_Shukla_Resume.pdf` | Resume, included alongside the submission |
 | `analysis/reconcile.py` | Stdlib-only script that re-derives every finding + number |
 | `analysis/report.json` | Generated audit output |
 | `deliverables/email_to_priya.md` | Task 3a — customer reply (finance-friendly) |
